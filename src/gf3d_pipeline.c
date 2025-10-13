@@ -468,7 +468,7 @@ Pipeline *gf3d_pipeline_create_from_config(
 
     pipe->device = device;
     
-    sj_object_get_value_as_uint32(config,"descriptorCount",&descriptorCount);
+    sj_object_get_value_as_Uint32(config,"descriptorCount",&descriptorCount);
     pipe->descriptorSetCount = descriptorCount;
     
     gf3d_pipelin_depth_stencil_create_info_from_json(sj_object_get_value(config,"depthStencil"),&depthStencil);
@@ -847,8 +847,8 @@ void gf3d_pipeline_create_basic_descriptor_set_layout_from_config(Pipeline *pipe
     {
         item = sj_array_get_nth(list,i);
         if (!item)continue;
-        sj_object_get_value_as_uint32(item,"binding",&bindings[i].binding);
-        sj_object_get_value_as_uint32(item,"descriptorCount",&bindings[i].descriptorCount);
+        sj_object_get_value_as_Uint32(item,"binding",&bindings[i].binding);
+        sj_object_get_value_as_Uint32(item,"descriptorCount",&bindings[i].descriptorCount);
         bindings[i].descriptorType = gf3d_config_descriptor_type_from_str(sj_object_get_value_as_string(item,"descriptorType"));
         bindings[i].stageFlags = gf3d_config_shader_stage_flags(sj_object_get_value(item,"stageFlags"));
     }

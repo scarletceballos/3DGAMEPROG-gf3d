@@ -55,3 +55,6 @@ gf3d
 # backup files
 *.blend1
 
+.vs
+
+test

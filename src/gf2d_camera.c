@@ -1,96 +1,104 @@
 #include "simple_logger.h"
 
-#include "gf2d_camera.h"
+#include "gf3d_vgraphics.h"
+#include "gf3d_camera.h"
 
-typedef struct
-{
-    GFC_Rect view;
-    GFC_Rect bounds;
-}Camera;
-static Camera _camera = {0};
+static Camera gf3d_camera = {0};
 
-void gf2d_camera_set_dimensions(Sint32 x,Sint32 y,Uint32 w,Uint32 h)
+
+void gf3d_camera_update_view()
 {
-    gfc_rect_set(_camera.view,x,y,w,h);
+    /**
+     * Adapted from tutorial:
+     * https://www.3dgep.com/understanding-the-view-matrix/
+     */
+    
+    GFC_Vector3D xaxis,yaxis,zaxis,position;
+    float cosPitch = cos(gf3d_camera.rotation.x);
+    float sinPitch = sin(gf3d_camera.rotation.x);
+    float cosYaw = cos(gf3d_camera.rotation.z);
+    float sinYaw = sin(gf3d_camera.rotation.z); 
+
+    position.x = gf3d_camera.position.x;
+    position.y = -gf3d_camera.position.z;        //inverting for Z-up
+    position.z = gf3d_camera.position.y;
+    gfc_matrix4_identity(gf3d_camera.cameraMat);
+
+    gfc_vector3d_set(xaxis, cosYaw,                     0,  -sinYaw);
+    gfc_vector3d_set(yaxis, sinYaw * sinPitch,   cosPitch,   cosYaw * sinPitch);
+    gfc_vector3d_set(zaxis, sinYaw * cosPitch,  -sinPitch,   cosPitch * cosYaw);
+    
+    gf3d_camera.cameraMat[0][0] = xaxis.x;
+    gf3d_camera.cameraMat[0][1] = yaxis.x;
+    gf3d_camera.cameraMat[0][2] = zaxis.x;
+
+    gf3d_camera.cameraMat[1][0] = xaxis.z;
+    gf3d_camera.cameraMat[1][1] = yaxis.z;
+    gf3d_camera.cameraMat[1][2] = zaxis.z;
+
+    gf3d_camera.cameraMat[2][0] = -xaxis.y;
+    gf3d_camera.cameraMat[2][1] = -yaxis.y;
+    gf3d_camera.cameraMat[2][2] = -zaxis.y;
+
+    gf3d_camera.cameraMat[3][0] = gfc_vector3d_dot_product(xaxis, position);
+    gf3d_camera.cameraMat[3][1] = gfc_vector3d_dot_product(yaxis, position);
+    gf3d_camera.cameraMat[3][2] = gfc_vector3d_dot_product(zaxis, position);
+    gf3d_vgraphics_set_view(gf3d_camera.cameraMat);
 }
 
-GFC_Rect gf2d_camera_get_bounds()
+GFC_Vector3D gf3d_camera_get_position()
 {
-    return _camera.bounds;
+    GFC_Vector3D position;
+    gfc_vector3d_negate(position,gf3d_camera.position);
+    return position;
 }
 
-GFC_Rect gf2d_camera_get_dimensions()
+void gf3d_camera_set_position(GFC_Vector3D position)
 {
-    return _camera.view;
+    gf3d_camera.position.x = -position.x;
+    gf3d_camera.position.y = -position.y;
+    gf3d_camera.position.z = -position.z;
 }
 
-GFC_Vector2D gf2d_camera_get_position()
+void gf3d_camera_set_rotation(GFC_Vector3D rotation)
 {
-    return gfc_vector2d(_camera.view.x,_camera.view.y);
+    gfc_angle_clamp_radians(&rotation.x);
+    gf3d_camera.rotation.x = -rotation.x;
+    gf3d_camera.rotation.y = -rotation.y;
+    gf3d_camera.rotation.z = -rotation.z;
 }
 
-GFC_Vector2D gf2d_camera_get_size()
+void gf3d_camera_set_scale(GFC_Vector3D scale)
 {
-    return gfc_vector2d(_camera.view.w,_camera.view.h);
+    if (!scale.x)gf3d_camera.scale.x = 0;
+    else gf3d_camera.scale.x = 1/scale.x;
+    if (!scale.y)gf3d_camera.scale.y = 0;
+    else gf3d_camera.scale.y = 1/scale.y;
+    if (!scale.z)gf3d_camera.scale.z = 0;
+    else gf3d_camera.scale.z = 1/scale.z;
 }
 
-GFC_Vector2D gf2d_camera_get_offset()
+void gf3d_camera_look_at(GFC_Vector3D target,const GFC_Vector3D *position)
 {
-    return gfc_vector2d(-_camera.view.x,-_camera.view.y);
-}
-
-void gf2d_camera_set_bounds(Sint32 x,Sint32 y,Uint32 w,Uint32 h)
-{
-    gfc_rect_set(_camera.bounds,x,y,w,h);
-}
-
-void gf2d_camera_bind()
-{
-    if (_camera.view.w > _camera.bounds.w)
+    GFC_Vector3D angles,pos;
+    GFC_Vector3D delta;
+    if (position)
     {
-        _camera.view.x = -(_camera.view.w - _camera.bounds.w)/2;
+        gfc_vector3d_copy(pos,(*position));
+        gf3d_camera_set_position(pos);
     }
     else
     {
-        if (_camera.view.x < _camera.bounds.x)_camera.view.x = _camera.bounds.x;
-        if (_camera.view.x + _camera.view.w > _camera.bounds.x + _camera.bounds.w)_camera.view.x = _camera.bounds.x + _camera.bounds.w - _camera.view.w;
+        pos = gf3d_camera_get_position();
     }
-    if (_camera.view.h > _camera.bounds.h)
-    {
-        _camera.view.y = -(_camera.view.h - _camera.bounds.h)/2;
-    }
-    else
-    {
-        if (_camera.view.y < _camera.bounds.y)_camera.view.y = _camera.bounds.y;
-        if (_camera.view.y + _camera.view.h > _camera.bounds.y + _camera.bounds.h)_camera.view.y = _camera.bounds.y + _camera.bounds.h - _camera.view.h;
-    }
+    gf3d_camera.lookTargetPosition = target;
+    gfc_vector3d_sub(delta,target,pos);
+    gfc_vector3d_angles (delta, &angles);
+
+    // get angle with the camera to work properly
+    // angled camera
+    angles.z -= GFC_HALF_PI;
+    angles.x -= GFC_PI;
+    gf3d_camera_set_rotation(angles);
 }
 
-void gf2d_camera_move(GFC_Vector2D v)
-{
-    gfc_vector2d_add(_camera.view,v,_camera.view);
-}
-
-void gf2d_camera_set_focus(GFC_Vector2D position)
-{
-    gf2d_camera_set_position(gfc_vector2d(position.x - (_camera.view.w/2),position.y - (_camera.view.h/2)));
-}
-
-void gf2d_camera_set_position(GFC_Vector2D position)
-{
-    gfc_vector2d_copy(_camera.view,position);
-}
-
-void gf2d_camera_set_position_absolute(GFC_Vector2D position)
-{
-    gfc_vector2d_copy(_camera.view,position);
-}
-
-void gf2d_camera_center_on(GFC_Vector2D position)
-{
-    GFC_Vector2D res;
-    res = gf2d_camera_get_size();
-    gfc_vector2d_scale(res,res,-0.5);
-    gfc_vector2d_add(_camera.view,position,res);
-}
-/*eol@eof*/

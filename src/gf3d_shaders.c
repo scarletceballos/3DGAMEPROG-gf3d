@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h> // Include this header for uint32_t
 
 #include "simple_logger.h"
 
@@ -7,16 +8,17 @@
 
 #include "gf3d_shaders.h"
 
-
-VkShaderModule gf3d_shaders_create_module(const char *shader,size_t size,VkDevice device)
+VkShaderModule gf3d_shaders_create_module(const char* shader, size_t size, VkDevice device)
 {
-    VkShaderModule module = {0};
-    VkShaderModuleCreateInfo createInfo = {0};
-    
+    VkShaderModule module = { 0 };
+    VkShaderModuleCreateInfo createInfo = { 0 };
+
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = size;
+
+    // Correct the cast to use uint32_t instead of uint32_t
     createInfo.pCode = (const uint32_t*)shader;
-    
+
     if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS)
     {
         slog("failed to create shader module");
@@ -24,19 +26,19 @@ VkShaderModule gf3d_shaders_create_module(const char *shader,size_t size,VkDevic
     return module;
 }
 
-char *gf3d_shaders_load_data(const char * filename,size_t *rsize)
+char* gf3d_shaders_load_data(const char* filename, size_t* rsize)
 {
-    char *buffer = NULL;
+    char* buffer = NULL;
     size_t size;
-    
-    buffer = gfc_pak_file_extract(filename,&size);
+
+    buffer = gfc_pak_file_extract(filename, &size);
     if (!buffer)
     {
-        slog("failed to laod shader file %s",filename);
+        slog("failed to load shader file %s", filename);
         return NULL;
-    }    
-    if (rsize)*rsize = size;
+    }
+    if (rsize) *rsize = size;
     return buffer;
 }
-    
+
 /*eol@eof*/

@@ -249,7 +249,7 @@ void gf2d_fonts_load_json(const char *filename)
     SJson *file,*fonts,*item;
     file = gfc_pak_load_json(filename);
     if (!file)return;
-    sj_object_get_value_as_uint32(file,"ttl",&font_manager.ttl);
+    sj_object_get_value_as_Uint32(file,"ttl",&font_manager.ttl);
     sj_object_get_value_as_int(file,"row_padding",&font_manager.row_padding);
     fonts = sj_object_get_value(file,"fonts");
     if (!fonts)

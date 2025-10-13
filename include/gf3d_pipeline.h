@@ -85,7 +85,7 @@ Pipeline *gf3d_pipeline_graphics_load(VkDevice device,const char *vertFile,const
  * @param vertextInputAttributeDescriptions list of how the attributes are described
  * @param vertexAttributeCount how many of the above are provided in the list
  * @param bufferSize the sizeof() the ubo to be used with this pipeline
- * @param indexType VK_INDEX_TYPE_UINT16, VK_INDEX_TYPE_UINT32, or VK_INDEX_TYPE_UINT8_EXT
+ * @param indexType VK_INDEX_TYPE_UINT16, VK_INDEX_TYPE_Uint32, or VK_INDEX_TYPE_UINT8_EXT
  * @returns NULL on error (see logs) or a pointer to a pipeline
 */
 Pipeline *gf3d_pipeline_create_from_config(
