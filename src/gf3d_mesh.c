@@ -27,6 +27,7 @@ typedef struct {
     Uint32 mesh_max;
     Uint32 chain_length;
     VkDevice device;
+    Pipeline* skypipe;
     Pipeline* pipe;
     Texture* defaultTexture;
     VkVertexInputAttributeDescription attributeDescriptions[MESH_ATTRIBUTE_COUNT];
@@ -86,6 +87,19 @@ void gf3d_mesh_init(Uint32 mesh_max)
     mesh_manager.device = gf3d_vgraphics_get_default_logical_device();
 
     gf3d_mesh_get_attribute_descriptions(&count);
+    
+    mesh_manager.skypipe = gf3d_pipeline_create_from_config(
+        gf3d_vgraphics_get_default_logical_device(),
+        "config/sky_pipeline.cfg",
+        gf3d_vgraphics_get_view_extent(),
+        mesh_max,
+        gf3d_mesh_manager_get_bind_description(),
+        gf3d_mesh_get_attribute_descriptions(NULL),
+        count,
+        sizeof(MeshUBO),
+        VK_INDEX_TYPE_UINT16
+    );
+    
     mesh_manager.pipe = gf3d_pipeline_create_from_config(
         gf3d_vgraphics_get_default_logical_device(),
         "config/model_pipeline.cfg",
@@ -321,6 +335,24 @@ void gf3d_mesh_draw(Mesh *mesh,GFC_Matrix4 modelMat,GFC_Color mod,Texture *textu
     ubo.lightPos = gfc_vector3dw(lightPos,1.0);
     ubo.camera = gfc_vector3dw(gf3d_camera_get_position(),1.0);
     gf3d_mesh_queue_render(mesh,mesh_manager.pipe,&ubo,texture);
+}
+
+void gf3d_mesh_sky_draw(Mesh *mesh,GFC_Matrix4 modelMat,GFC_Color mod,Texture *texture)
+{
+    MeshUBO ubo = {0};
+    
+    if (!mesh)return;
+    gfc_matrix4_copy(ubo.model,modelMat);
+    gf3d_vgraphics_get_view(&ubo.view);
+    gf3d_vgraphics_get_projection_matrix(&ubo.proj);
+
+    ubo.color = gfc_color_to_vector4f(mod);
+    // For sky rendering, we don't need lighting
+    ubo.lightColor = gfc_color_to_vector4f(GFC_COLOR_WHITE);
+    ubo.lightPos = gfc_vector4d(0,0,0,1);
+    ubo.camera = gfc_vector4d(0,0,0,1);
+    
+    gf3d_mesh_queue_render(mesh,mesh_manager.skypipe,&ubo,texture);
 }
 
 // Internal functions

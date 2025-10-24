@@ -137,7 +137,7 @@ GF3D_Device *gf3d_device_get_info(VkPhysicalDevice device)
                 device_info->score++;
             }
         }
-        //TODO: add more features to check for
+        //TODO: check new features to update
     }
 
     if (__DEBUG)

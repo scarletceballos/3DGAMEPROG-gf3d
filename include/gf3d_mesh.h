@@ -91,6 +91,16 @@ Mesh* gf3d_mesh_load(const char* filename);
  */
 void gf3d_mesh_draw(Mesh* mesh, GFC_Matrix4 modelMat, GFC_Color mod, Texture* texture, GFC_Vector3D lightPos, GFC_Color lightColor);
 
+
+/**
+ * @brief draw a mesh for sky rendering with simplified lighting style
+ * @param mesh the mesh to draw
+ * @param modelMat the matrix to draw it with
+ * @param mod color mod for rendering
+ * @param texture the texture to use for rendering
+ */
+void gf3d_mesh_sky_draw(Mesh *mesh, GFC_Matrix4 modelMat, GFC_Color mod, Texture *texture);
+
 /**
  * @brief queue up a mesh for rendering
  * @param mesh the mesh to render

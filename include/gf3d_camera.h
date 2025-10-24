@@ -276,4 +276,19 @@ void gf3d_camera_set_auto_pan(Bool enable);
  */
 Bool gf3d_camera_free_look_enabled();
 
+/**
+ * @brief initialize default camera input bindings (toggle/reset/speed)
+ */
+void gf3d_camera_init_controls();
+
+/**
+ * @brief reset camera to initial start position and orientation (fixed mode)
+ */
+void gf3d_camera_reset_to_initial();
+
+/**
+ * @brief get current camera move step (speed)
+ */
+float gf3d_camera_get_move_step();
+
 #endif

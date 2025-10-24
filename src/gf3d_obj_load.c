@@ -337,7 +337,7 @@ void gf3d_obj_move(ObjData* obj, GFC_Vector3D offset, GFC_Vector3D rotation)
             matrix,
             offset,
             rotation,
-            gfc_vector3d(1, 1, 1));//TODO add the scale too
+            gfc_vector3d(1, 1, 1));
         gfc_matrix4_v_multiply(&outV, gfc_vector3dw(obj->faceVertices[i].vertex, 1.0), matrix);
         gfc_vector3d_copy(obj->faceVertices[i].vertex, outV);
         //update the normal, without the translation

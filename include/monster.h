@@ -31,4 +31,9 @@ Monster* monster_new(Mesh* mesh, Texture* texture, GFC_Vector3D position);
  */
 void monster_free(Monster* monster);
 
+/**
+ * @brief cleanup oldest monster for entity system testing
+ */
+void monster_cleanup_oldest();
+
 #endif

@@ -47,6 +47,7 @@ Entity* entity_new() {
 
 void entity_free(Entity* ent) {
     if (!ent) return;
+    if (ent->free)ent->free(ent);
     if (ent->mesh) {
         gf3d_mesh_free(ent->mesh);
     }
@@ -55,6 +56,28 @@ void entity_free(Entity* ent) {
     }
     memset(ent, 0, sizeof(Entity));
 }
+
+void entity_draw_shadow(Entity *ent){
+    GFC_Vector3D drawPosition;
+    GFC_Matrix4 modelMat;
+    if((!ent)||(!ent->drawShadow)) return;
+    gfc_vector3d_copy(drawPosition, ent->position);
+    drawPosition.z += 0.1;
+    gfc_matrix4_from_vectors(
+        modelMat,
+        ent->position,
+        ent->rotation,
+        gfc_vector3d(ent->scale.x,ent->scale.y,0.01));
+    
+    gf3d_mesh_draw(
+        ent->mesh,
+        modelMat,
+        ent->color,
+        ent->texture,
+        gfc_vector3d(0,0,0),
+        gfc_color8(0,0,0,128));
+}
+
 
 void entity_draw(Entity* ent, GFC_Vector3D lightPos, GFC_Color lightColor) {
     if (!ent) return;
@@ -79,6 +102,13 @@ void entity_draw(Entity* ent, GFC_Vector3D lightPos, GFC_Color lightColor) {
     if (ent->draw) {
         ent->draw(ent);
     }
+}
+
+Uint8 entity_get_floor_position(Entity *entity, World *world, GFC_Vector3D *contact){
+    GFC_Vector3D up,down;
+    if(!entity)return 0;
+    // TODO: do floor position calculation
+    return 0;
 }
 
 void entity_think(Entity* ent) {

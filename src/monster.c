@@ -1,9 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include "simple_logger.h"
 #include "gfc_types.h"
 #include "monster.h"
 #include "entity.h"
+#include "gfc_input.h"
 
 typedef struct
 {
@@ -12,9 +14,115 @@ typedef struct
     Uint32 monster_count;
 } MonsterSystem;
 
+typedef struct
+{
+    Entity *camera;
+    float move_step;
+    int direction; // 1 for forward, -1 for backward
+    int behavior_type; // 0=normal, 1=fast, 2=slow
+    float creation_time; // Track when entity was created
+} MonsterEntityData;
+
 static MonsterSystem monster_system = { NULL, 0, 0 };
 
 void monster_system_close();
+
+void monster_think(Entity *self) {
+    MonsterEntityData *data;
+    float rotationSpeed = 0.05f;
+    
+    if ((!self) || (!self->data)) return;
+    data = (MonsterEntityData*)self->data;
+    
+    // Different behaviors based on type
+    switch(data->behavior_type) {
+        case 1: // Fast
+            rotationSpeed = 0.1f;
+            break;
+        case 2: // Slow  
+            rotationSpeed = 0.02f;
+            break;
+        default: // Normal
+            rotationSpeed = 0.05f;
+            break;
+    }
+    
+    // Handle rotational input with diagonal support
+    // Left/Right rotation (around Z-axis)
+    if (gfc_input_command_down("walkleft") || gfc_input_key_down("LEFT")) {
+        self->rotation.z += rotationSpeed; // Rotate left
+    }
+    if (gfc_input_command_down("walkright") || gfc_input_key_down("RIGHT")) {
+        self->rotation.z -= rotationSpeed; // Rotate right
+    }
+    
+    // Up/Down rotation (around X-axis)
+    if (gfc_input_command_down("up") || gfc_input_key_down("UP")) {
+        self->rotation.x += rotationSpeed; // Rotate up
+    }
+    if (gfc_input_command_down("down") || gfc_input_key_down("DOWN")) {
+        self->rotation.x -= rotationSpeed; // Rotate down
+    }
+    
+    // Auto-rotation for demonstration (different behaviors)
+    if (data->behavior_type == 1) {
+        // Fast entities auto-spin
+        self->rotation.y += 0.03f;
+    } else if (data->behavior_type == 2) {
+        // Slow entities auto-bob up and down
+        self->position.z = sin(data->creation_time + SDL_GetTicks() * 0.001f) * 2.0f;
+    }
+    
+    // Keep rotations in valid range for all axes
+    while (self->rotation.x > 2 * GFC_PI) self->rotation.x -= 2 * GFC_PI;
+    while (self->rotation.x < 0) self->rotation.x += 2 * GFC_PI;
+    while (self->rotation.y > 2 * GFC_PI) self->rotation.y -= 2 * GFC_PI;
+    while (self->rotation.y < 0) self->rotation.y += 2 * GFC_PI;
+    while (self->rotation.z > 2 * GFC_PI) self->rotation.z -= 2 * GFC_PI;
+    while (self->rotation.z < 0) self->rotation.z += 2 * GFC_PI;
+}
+
+void monster_update(Entity *self) {
+    if (!self) return;
+    // Generic update can go here if needed
+}
+
+void monster_free_data(Entity *self) {
+    if ((!self) || (!self->data)) return;
+    free(self->data);
+    self->data = NULL;
+}
+
+void monster_free(Monster* monster)
+{
+    if (!monster) return;
+    
+    slog("Freeing monster entity");
+    
+    if (monster->entity) {
+        entity_free(monster->entity);
+        monster->entity = NULL;
+    }
+    
+    // Clear the entire monster slot for reuse
+    memset(monster, 0, sizeof(Monster));
+    
+    // Decrement count so we know a slot is available
+    if (monster_system.monster_count > 0) {
+        monster_system.monster_count--;
+    }
+    
+    slog("Monster freed. Current count: %d", monster_system.monster_count);
+}
+
+void monster_set_camera_ent(Entity *self, Entity *camera) {
+    MonsterEntityData *data;
+    if ((!self) || (!camera)) return;
+    data = (MonsterEntityData*)self->data;
+    if (data) {
+        data->camera = camera;
+    }
+}
 
 void monster_system_init(Uint32 max_monsters)
 {
@@ -58,6 +166,7 @@ Monster* monster_new(Mesh* mesh, Texture* texture, GFC_Vector3D position)
     int i;
     Monster* monster = NULL;
     Entity* entity = NULL;
+    MonsterEntityData* data = NULL;
     
     if (!monster_system.monster_list) {
         slog("monster system not initialized");
@@ -66,21 +175,31 @@ Monster* monster_new(Mesh* mesh, Texture* texture, GFC_Vector3D position)
     
     // Find free monster slot
     for (i = 0; i < monster_system.monster_max; i++) {
-        if (!monster_system.monster_list[i].entity) {
+        if (!monster_system.monster_list[i].entity) { // Check if entity is NULL (free slot)
             monster = &monster_system.monster_list[i];
+            slog("Found free monster slot at index %d", i);
             break;
         }
     }
     
     if (!monster) {
-        slog("no free monster slots available");
+        slog("no free monster slots available (current count: %d, max: %d)", 
+             monster_system.monster_count, monster_system.monster_max);
         return NULL;
     }
     
-    // new entity here:
+    // Create entity
     entity = entity_new();
     if (!entity) {
-        slog("failed to create entity for dino");
+        slog("failed to create entity for monster");
+        return NULL;
+    }
+    
+    // Create monster data
+    data = gfc_allocate_array(sizeof(MonsterEntityData), 1);
+    if (!data) {
+        entity_free(entity);
+        slog("failed to allocate monster data");
         return NULL;
     }
     
@@ -92,27 +211,56 @@ Monster* monster_new(Mesh* mesh, Texture* texture, GFC_Vector3D position)
     entity->mesh = mesh;
     entity->texture = texture;
     entity->position = position;
-    entity->rotation = gfc_vector3d(0, -GFC_HALF_PI, 0);  // work to have model look and stand face forward and upright
+    entity->rotation = gfc_vector3d(0, 0, 0);  // Face camera (no rotation)
     entity->scale = gfc_vector3d(2.0f, 2.0f, 2.0f);
     entity->color = GFC_COLOR_WHITE;
+    entity->data = data;
+    entity->think = monster_think;
+    entity->update = monster_update;
+    entity->free = monster_free_data;
     
-    gfc_line_cpy(entity->name, "dino");
+    // Initialize monster data
+    data->camera = NULL;
+    data->move_step = 0.1f;
+    data->direction = 1; // Not used for spinning, but keep for compatibility
+    data->behavior_type = monster_system.monster_count % 3; // Cycle through 0, 1, 2
+    data->creation_time = SDL_GetTicks() * 0.001f; // Store creation time
+    data->behavior_type = monster_system.monster_count % 3; // Cycle through 0, 1, 2
+    data->creation_time = SDL_GetTicks() * 0.001f; // Store creation time
+    
+    gfc_line_cpy(entity->name, "monster");
     
     monster_system.monster_count++;
     
-    slog("created dino at position (%f, %f, %f)", position.x, position.y, position.z);
+    slog("created monster at position (%f, %f, %f) with behavior type %d", 
+         position.x, position.y, position.z, data->behavior_type);
     return monster;
 }
 
-void monster_free(Monster* monster)
-{
-    if (!monster) return;
+void monster_cleanup_oldest() {
+    int i;
+    float oldest_time = SDL_GetTicks() * 0.001f;
+    int oldest_index = -1;
     
-    if (monster->entity) {
-        entity_free(monster->entity);
-        monster->entity = NULL;
+    slog("Looking for oldest monster to clean up...");
+    
+    // Find the oldest monster
+    for (i = 0; i < monster_system.monster_max; i++) {
+        if (monster_system.monster_list[i].entity) {
+            MonsterEntityData* data = (MonsterEntityData*)monster_system.monster_list[i].entity->data;
+            if (data && data->creation_time < oldest_time) {
+                oldest_time = data->creation_time;
+                oldest_index = i;
+            }
+        }
     }
     
-    memset(monster, 0, sizeof(Monster));
-    monster_system.monster_count--;
+    // Remove the oldest monster to demonstrate cleanup
+    if (oldest_index >= 0) {
+        slog("Cleaning up oldest monster at index %d (created at time %.2f)", oldest_index, oldest_time);
+        monster_free(&monster_system.monster_list[oldest_index]);
+        slog("Cleanup complete. Slots available for new monsters.");
+    } else {
+        slog("No monsters to clean up");
+    }
 }

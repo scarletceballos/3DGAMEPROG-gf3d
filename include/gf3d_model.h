@@ -157,7 +157,7 @@ void gf3d_model_move(Model *in, GFC_Vector3D offset,GFC_Vector3D rotation);
 void gf3d_model_draw(
     Model *model,
     GFC_Matrix4 modelMat,
-    GFC_Color   colorMod,//TODO pass a material instead
+    GFC_Color   colorMod,
     LightUBO *lighting,
     Uint32 frame);
 

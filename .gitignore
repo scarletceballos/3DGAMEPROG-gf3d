@@ -56,5 +56,7 @@ gf3d
 *.blend1
 
 .vs
+.vscode
 
 test
+compile_shaders.bat

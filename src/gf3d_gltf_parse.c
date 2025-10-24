@@ -178,7 +178,6 @@ void gf3d_gltf_get_buffer_view_data(GLTF* gltf, Uint32 viewIndex, char* buffer)
     gf3d_gltf_get_data_from_buffer(gltf,index,byteOffset,byteLength, buffer);
 }
 
-//TODO: report on componentType so the data can be parsed correctly
 const char* gf3d_gltf_accessor_get_details(GLTF* gltf, Uint32 accessorIndex, int* bufferIndex, int* count)
 {
     SJson* accessor;
