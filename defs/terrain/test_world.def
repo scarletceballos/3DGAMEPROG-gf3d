@@ -1,0 +1,10 @@
+{
+	"world":
+	{
+		"terrain": "models/sky/sky.obj",
+		"terrainTexture": "models/sky/sky.png",
+		"scale": [1.0, 1.0, 1.0],
+		"lightcolor": [1.0, 1.0, 1.0, 1.0],
+		"lightpos": [8.0, 15.0, 12.0]
+	}
+}

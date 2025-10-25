@@ -1,0 +1,10 @@
+{
+	"world":
+	{
+		"terrain": "defs/terrain/terrain.obj",
+		"terrainTexture": "defs/terrain/terrain.png",
+		"scale": [1.0, 1.0, 1.0],
+		"lightcolor": [1.0, 1.0, 1.0, 1.0],
+		"lightpos": [0.0, 10.0, 10.0]
+	}
+}
