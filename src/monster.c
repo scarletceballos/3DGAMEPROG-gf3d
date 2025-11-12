@@ -28,52 +28,10 @@ static MonsterSystem monster_system = { NULL, 0, 0 };
 void monster_system_close();
 
 void monster_think(Entity *self) {
-    MonsterEntityData *data;
-    float rotationSpeed = 0.05f;
-    
-    if ((!self) || (!self->data)) return;
-    data = (MonsterEntityData*)self->data;
-    
-    // Different behaviors based on type
-    switch(data->behavior_type) {
-        case 1: // Fast
-            rotationSpeed = 0.1f;
-            break;
-        case 2: // Slow  
-            rotationSpeed = 0.02f;
-            break;
-        default: // Normal
-            rotationSpeed = 0.05f;
-            break;
-    }
-    
-    // Handle rotational input with diagonal support
-    // Left/Right rotation (around Z-axis)
-    if (gfc_input_command_down("walkleft") || gfc_input_key_down("LEFT")) {
-        self->rotation.z += rotationSpeed; // Rotate left
-    }
-    if (gfc_input_command_down("walkright") || gfc_input_key_down("RIGHT")) {
-        self->rotation.z -= rotationSpeed; // Rotate right
-    }
-    
-    // Up/Down rotation (around X-axis)
-    if (gfc_input_command_down("up") || gfc_input_key_down("UP")) {
-        self->rotation.x += rotationSpeed; // Rotate up
-    }
-    if (gfc_input_command_down("down") || gfc_input_key_down("DOWN")) {
-        self->rotation.x -= rotationSpeed; // Rotate down
-    }
-    
-    // Auto-rotation for demonstration (different behaviors)
-    if (data->behavior_type == 1) {
-        // Fast entities auto-spin
-        self->rotation.y += 0.03f;
-    } else if (data->behavior_type == 2) {
-        // Slow entities auto-bob up and down
-        self->position.z = sin(data->creation_time + SDL_GetTicks() * 0.001f) * 2.0f;
-    }
-    
-    // Keep rotations in valid range for all axes
+    // let game.c control facing based on movement. game work better this way for now
+    // Keep rotation values normalized only; no autonomous rotation here.
+    // TODO: maybe move movement here one day
+    if (!self) return;
     while (self->rotation.x > 2 * GFC_PI) self->rotation.x -= 2 * GFC_PI;
     while (self->rotation.x < 0) self->rotation.x += 2 * GFC_PI;
     while (self->rotation.y > 2 * GFC_PI) self->rotation.y -= 2 * GFC_PI;
@@ -212,7 +170,8 @@ Monster* monster_new(Mesh* mesh, Texture* texture, GFC_Vector3D position)
     entity->texture = texture;
     entity->position = position;
     entity->rotation = gfc_vector3d(0, 0, 0);  // Face camera (no rotation)
-    entity->scale = gfc_vector3d(2.0f, 2.0f, 2.0f);
+    // Make dino 50% smaller than before (was 2.0)
+    entity->scale = gfc_vector3d(1.0f, 1.0f, 1.0f);
     entity->color = GFC_COLOR_WHITE;
     entity->data = data;
     entity->think = monster_think;

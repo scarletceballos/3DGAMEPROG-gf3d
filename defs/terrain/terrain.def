@@ -8,3 +8,13 @@
 		"lightpos": [8.0, 15.0, 12.0]
 	}
 }
+{
+	"world":
+	{
+		"terrain": "models/primitives/ground_plane.obj",
+		"terrainTexture": "images/default.png",
+		"scale": [1.0, 1.0, 1.0],
+		"lightcolor": [1.0, 1.0, 1.0, 1.0],
+		"lightpos": [8.0, 15.0, 12.0]
+	}
+}

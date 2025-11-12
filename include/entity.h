@@ -1,5 +1,19 @@
+
 #ifndef __ENTITY_H__
 #define __ENTITY_H__
+
+#include "gfc_text.h"
+#include "gfc_vector.h"
+#include "gfc_matrix.h"
+#include "gfc_color.h"
+#include "gfc_primitives.h"
+#include "gfc_types.h"
+
+#include "gf3d_texture.h"
+#include "gf3d_mesh.h"
+
+// Global for map floor Z (both used for game.c and entity.c)
+extern float g_map_floor_z;
 
 #include "gfc_text.h"
 #include "gfc_vector.h"
@@ -26,6 +40,7 @@ typedef struct Entity_S
     GFC_Vector3D    rotation;
     GFC_Vector3D    scale;
     GFC_Vector3D    velocity;
+    GFC_Vector3D    acceleration;
     Uint8           drawShadow;
 
     
@@ -36,6 +51,7 @@ typedef struct Entity_S
     void           (*free)(struct Entity_S* self);
     Uint8           doGenericUpdate;
     void            *data;
+    Uint8           static_bounds; // If set, collision_update_entity_bounds will not overwrite bounds
 
 } Entity;
 
@@ -93,5 +109,23 @@ void entity_draw_shadow(Entity *ent);
  * @return 1 if floor found, 0 otherwise
  */
 Uint8 entity_get_floor_position(Entity *entity, World *world, GFC_Vector3D *contact);
+
+/**
+ * @brief get direct access to entity list for collision detection
+ * @return pointer to entity array, NULL if not initialized
+ */
+Entity* entity_system_get_all_entities();
+
+/**
+ * @brief get count of entities in use
+ * @return number of active entities
+ */
+Uint32 entity_system_get_count();
+
+/**
+ * @brief get maximum entity capacity
+ * @return maximum number of entities the system can hold
+ */
+Uint32 entity_system_get_max();
 
 #endif

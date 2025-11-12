@@ -1,3 +1,4 @@
+#include <math.h>
 #include "simple_logger.h"
 #include "gfc_input.h"
 #include "gf3d_camera.h"
@@ -33,11 +34,19 @@ void camera_entity_think(Entity *self) {
     if ((!self) || (!self->data)) return;
     data = (CameraEntityData*)self->data;
     if (!data->target) return;
-    
-    GFC_Vector3D newPos = gfc_vector3d(0, 0, data->followHeight); // Center at origin, high up (or should be)
-    gfc_vector3d_copy(self->position, newPos);
-    
-    GFC_Vector3D lookTarget = gfc_vector3d(0, 0, 0); // Look at ground center
+    // Orbit around the target using angle and followDistance; Z is up.
+    // angle=0 points camera behind target along -Y, matching initial spawn (0,-20,10).
+    float xoff = sinf(data->angle) * data->followDistance;
+    float yoff = -cosf(data->angle) * data->followDistance;
+    GFC_Vector3D desired = gfc_vector3d(
+        data->target->position.x + xoff,
+        data->target->position.y + yoff,
+        data->target->position.z + data->followHeight
+    );
+    gfc_vector3d_copy(self->position, desired);
+
+    // Look at the target's current position
+    GFC_Vector3D lookTarget = data->target->position;
     gf3d_camera_set_position(self->position);
     gf3d_camera_look_at(lookTarget, &self->position);
 }
@@ -75,9 +84,9 @@ Entity* camera_entity_spawn(GFC_Vector3D position, Entity* target) {
     
     // Initialize camera data
     data->target = target;
-    data->followHeight = 50.0f;  // Height even higher simply for entity testing
-    data->followDistance = 35.0f; // Not used/needed for overhead angle
-    data->angle = 0.0f;
+    data->followHeight = 10.0f;   // Slightly above target
+    data->followDistance = 20.0f; // Back a bit from the target
+    data->angle = 0.0f;           // Facing along -Y initially
     
     // Set as global camera entity
     g_camera_entity = self;
@@ -110,4 +119,22 @@ void camera_entity_adjust_angle(Entity* camera_entity, float angle_delta) {
     // Keep angle in range [0, 2*PI]
     while (data->angle < 0) data->angle += 2 * GFC_PI;
     while (data->angle >= 2 * GFC_PI) data->angle -= 2 * GFC_PI;
+}
+
+void camera_entity_adjust_height(Entity* camera_entity, float height_delta) {
+    CameraEntityData *data;
+    if ((!camera_entity) || (!camera_entity->data)) return;
+    data = (CameraEntityData*)camera_entity->data;
+    data->followHeight += height_delta;
+    if (data->followHeight < 2.0f) data->followHeight = 2.0f;
+    if (data->followHeight > 50.0f) data->followHeight = 50.0f;
+}
+
+void camera_entity_adjust_distance(Entity* camera_entity, float distance_delta) {
+    CameraEntityData *data;
+    if ((!camera_entity) || (!camera_entity->data)) return;
+    data = (CameraEntityData*)camera_entity->data;
+    data->followDistance += distance_delta;
+    if (data->followDistance < 3.0f) data->followDistance = 3.0f;
+    if (data->followDistance > 100.0f) data->followDistance = 100.0f;
 }

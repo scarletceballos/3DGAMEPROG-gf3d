@@ -148,15 +148,26 @@ ObjData* gf3d_obj_load_from_file(const char* filename)
     void* mem = NULL;
     size_t fileSize;
 
+    slog("gf3d_obj_load_from_file: loading %s", filename);
     mem = gfc_pak_file_extract(filename, &fileSize);
 
-    if (!mem)return NULL;
+    if (!mem) {
+        slog("gf3d_obj_load_from_file: failed to extract file %s", filename);
+        return NULL;
+    }
+    slog("gf3d_obj_load_from_file: extracted %zu bytes", fileSize);
 
     obj = (ObjData*)gfc_allocate_array(sizeof(ObjData), 1);
-    if (!obj)return NULL;
+    if (!obj) {
+        slog("gf3d_obj_load_from_file: failed to allocate ObjData");
+        return NULL;
+    }
 
+    slog("gf3d_obj_load_from_file: counting OBJ elements");
     gf3d_obj_get_counts_from_file(obj, mem, fileSize);
+    slog("gf3d_obj_load_from_file: v=%d vt=%d vn=%d f=%d", obj->vertex_count, obj->texel_count, obj->normal_count, obj->face_count);
 
+    slog("gf3d_obj_load_from_file: allocating vertex arrays");
     obj->vertices = (GFC_Vector3D*)gfc_allocate_array(sizeof(GFC_Vector3D), obj->vertex_count);
     obj->normals = (GFC_Vector3D*)gfc_allocate_array(sizeof(GFC_Vector3D), obj->normal_count);
     obj->texels = (GFC_Vector2D*)gfc_allocate_array(sizeof(GFC_Vector2D), obj->texel_count);
@@ -165,11 +176,14 @@ ObjData* gf3d_obj_load_from_file(const char* filename)
     obj->faceNormals = (Face*)gfc_allocate_array(sizeof(Face), obj->face_count);
     obj->faceTexels = (Face*)gfc_allocate_array(sizeof(Face), obj->face_count);
 
+    slog("gf3d_obj_load_from_file: parsing OBJ data");
     gf3d_obj_load_get_data_from_file(obj, mem, fileSize);
 
-
+    slog("gf3d_obj_load_from_file: computing bounds");
     gf3d_obj_get_bounds(obj);
+    slog("gf3d_obj_load_from_file: reorganizing data");
     gf3d_obj_load_reorg(obj);
+    slog("gf3d_obj_load_from_file: complete for %s", filename);
     return obj;
 }
 
@@ -178,6 +192,7 @@ void gf3d_obj_get_counts_from_file(ObjData* obj, const char* mem, size_t fileSiz
     char buf[256];
     const char* p;
     const char* c;
+    const char* end;
     int  numvertices = 0;
     int  numtexels = 0;
     int  numnormals = 0;
@@ -185,12 +200,21 @@ void gf3d_obj_get_counts_from_file(ObjData* obj, const char* mem, size_t fileSiz
 
     if ((!obj) || (!mem))
     {
+        slog("gf3d_obj_get_counts_from_file: NULL obj or mem");
         return;
     }
+    
     p = mem;
-    while (sscanf(p, "%s", buf) != EOF)
+    end = mem + fileSize;
+    slog("gf3d_obj_get_counts_from_file: parsing %zu bytes", fileSize);
+    
+    while (p < end && sscanf(p, "%255s", buf) == 1)
     {
         c = strchr(p, '\n');//go to the end of line
+        if (!c || c >= end) {
+            slog("gf3d_obj_get_counts_from_file: reached end of file");
+            break; // reached end of file
+        }
         p = c + 1;//and then the next line
         switch (buf[0])
         {
@@ -221,25 +245,45 @@ void gf3d_obj_get_counts_from_file(ObjData* obj, const char* mem, size_t fileSiz
     obj->texel_count = numtexels;
     obj->normal_count = numnormals;
     obj->face_count = numfaces;
+    slog("gf3d_obj_get_counts_from_file: done counting");
 }
 
 void gf3d_obj_load_get_data_from_file(ObjData* obj, const char* mem, size_t fileSize)
 {
     const char* p;
     const char* c;
+    const char* end;
     int  numvertices = 0;
     int  numnormals = 0;
     int  numtexcoords = 0;
     int  numfaces = 0;
+    int  iterations = 0;
+    int  maxIterations = 100000; // Safety limit for large files
     char buf[128];
     float x, y, z;
     int f[3][3];
 
-    if ((!obj) || (!mem))return;
+    if ((!obj) || (!mem)) {
+        slog("gf3d_obj_load_get_data_from_file: NULL obj or mem");
+        return;
+    }
 
     p = mem;
-    while (sscanf(p, "%s", buf) != EOF)
+    end = mem + fileSize;
+    slog("gf3d_obj_load_get_data_from_file: parsing data from %zu bytes", fileSize);
+    
+    while (p < end && sscanf(p, "%127s", buf) == 1)
     {
+        iterations++;
+        if (iterations % 5000 == 0) {
+            slog("gf3d_obj_load_get_data_from_file: parsed %d lines (v=%d vt=%d vn=%d f=%d)", 
+                 iterations, numvertices, numtexcoords, numnormals, numfaces);
+        }
+        if (iterations > maxIterations) {
+            slog("gf3d_obj_load_get_data_from_file: SAFETY BREAK at %d iterations - possible infinite loop", iterations);
+            break;
+        }
+        
         p += strlen(buf);//skip what was checked so far
         switch (buf[0])
         {
@@ -247,6 +291,10 @@ void gf3d_obj_load_get_data_from_file(ObjData* obj, const char* mem, size_t file
             switch (buf[1])
             {
             case '\0':
+                if (numvertices >= obj->vertex_count) {
+                    slog("gf3d_obj_load_get_data_from_file: WARNING - vertex count exceeded!");
+                    break;
+                }
                 sscanf(
                     p,
                     "%f %f %f",
@@ -260,6 +308,10 @@ void gf3d_obj_load_get_data_from_file(ObjData* obj, const char* mem, size_t file
                 numvertices++;
                 break;
             case 'n':
+                if (numnormals >= obj->normal_count) {
+                    slog("gf3d_obj_load_get_data_from_file: WARNING - normal count exceeded!");
+                    break;
+                }
                 sscanf(
                     p,
                     "%f %f %f",
@@ -273,6 +325,10 @@ void gf3d_obj_load_get_data_from_file(ObjData* obj, const char* mem, size_t file
                 numnormals++;
                 break;
             case 't':
+                if (numtexcoords >= obj->texel_count) {
+                    slog("gf3d_obj_load_get_data_from_file: WARNING - texcoord count exceeded!");
+                    break;
+                }
                 sscanf(
                     p,
                     "%f %f",
@@ -288,6 +344,10 @@ void gf3d_obj_load_get_data_from_file(ObjData* obj, const char* mem, size_t file
             }
             break;
         case 'f':
+            if (numfaces >= obj->face_count) {
+                slog("gf3d_obj_load_get_data_from_file: WARNING - face count exceeded! numfaces=%d, obj->face_count=%d", numfaces, obj->face_count);
+                break; // Don't overflow the array
+            }
             sscanf(
                 p,
                 "%d/%d/%d %d/%d/%d %d/%d/%d",
@@ -320,8 +380,13 @@ void gf3d_obj_load_get_data_from_file(ObjData* obj, const char* mem, size_t file
             break;
         }
         c = strchr(p, '\n');//go to the end of line
+        if (!c || c >= end) {
+            slog("gf3d_obj_load_get_data_from_file: reached end during data parse");
+            break; // reached end of file
+        }
         p = c + 1;//and then the next line
     }
+    slog("gf3d_obj_load_get_data_from_file: parsed v=%d vt=%d vn=%d f=%d", numvertices, numtexcoords, numnormals, numfaces);
 }
 
 void gf3d_obj_move(ObjData* obj, GFC_Vector3D offset, GFC_Vector3D rotation)

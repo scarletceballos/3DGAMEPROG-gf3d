@@ -137,6 +137,25 @@ void gf3d_vgraphics_init(const char *config)
     sj_get_bool_value(sj_object_get_value(json,"enable_debug"),&enableDebug);
     sj_get_bool_value(sj_object_get_value(json,"enable_validation"),&enableValidation);
     
+    // If fullscreen is enabled, auto-detect the display resolution
+    if (fullscreen)
+    {
+        SDL_DisplayMode displayMode;
+        if (SDL_Init(SDL_INIT_VIDEO) == 0)
+        {
+            if (SDL_GetDesktopDisplayMode(0, &displayMode) == 0)
+            {
+                resolution.x = displayMode.w;
+                resolution.y = displayMode.h;
+                slog("Auto-detected fullscreen resolution: %dx%d", (int)resolution.x, (int)resolution.y);
+            }
+            else
+            {
+                slog("Failed to get desktop display mode, using config resolution");
+            }
+        }
+    }
+    
     if (resolution.y == 0)
     {
         slog("invalid resolution (%f,%f), closing",resolution.x,resolution.y);
@@ -403,6 +422,11 @@ VkExtent2D gf3d_vgraphics_get_view_extent()
 GFC_Vector2D gf3d_vgraphics_get_resolution()
 {
     return gf3d_vgraphics_get_view_extent_as_vector2d();
+}
+
+SDL_Window* gf3d_vgraphics_get_window()
+{
+    return gf3d_vgraphics.main_window;
 }
 
 GFC_Vector2D gf3d_vgraphics_get_view_extent_as_vector2d()

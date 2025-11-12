@@ -49,4 +49,18 @@ float camera_entity_get_angle(Entity* camera_entity);
  */
 void camera_entity_adjust_angle(Entity* camera_entity, float angle_delta);
 
+/**
+ * @brief adjust camera follow height (for up/down movement only)
+ * @param camera_entity the camera entity
+ * @param height_delta amount to add to current height
+ */
+void camera_entity_adjust_height(Entity* camera_entity, float height_delta);
+
+/**
+ * @brief adjust camera follow distance (for zoom in/out)
+ * @param camera_entity the camera entity
+ * @param distance_delta amount to add to current distance
+ */
+void camera_entity_adjust_distance(Entity* camera_entity, float distance_delta);
+
 #endif

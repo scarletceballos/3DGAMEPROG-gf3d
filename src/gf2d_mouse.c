@@ -1,11 +1,9 @@
 #include <SDL.h>
-
+#include "simple_logger.h"
 #include "gf3d_vgraphics.h"
 #include "gf3d_camera.h"
-
 #include "gf2d_actor.h"
 #include "gf2d_mouse.h"
-
 
 typedef struct
 {
@@ -48,13 +46,23 @@ void gf2d_mouse_load(const char *actorFile)
 {
     gf2d_actor_free(_mouse.actor);
     _mouse.actor = gf2d_actor_load(actorFile);
+    if (!_mouse.actor)
+    {
+        slog("gf2d_mouse_load: failed to load mouse actor: %s", actorFile);
+        _mouse.action = NULL;
+        _mouse.frame = 0;
+        return;
+    }
     gf2d_mouse_set_action("default");
 }
 
 void gf2d_mouse_update()
 {
     int x,y;
-    gfc_action_next_frame(_mouse.action,&_mouse.frame);
+    if (_mouse.action)
+    {
+        gfc_action_next_frame(_mouse.action,&_mouse.frame);
+    }
     memcpy(&_mouse.mouse[1],&_mouse.mouse[0],sizeof(MouseState));
     _mouse.mouse[0].buttons = SDL_GetMouseState(&x,&y);
     gfc_vector2d_set(_mouse.mouse[0].position,x,y);

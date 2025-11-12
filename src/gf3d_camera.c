@@ -10,6 +10,42 @@
 // Internal camera state
 static Camera gf3d_camera = {0};
 
+// complicated work that didnt matter but could be used for something
+/* void gf3d_camera_set_view(gfc_vector3d eye, gfc_vector3d target, gfc_vector3d up){
+    gf3d_camera_get_view_matrix(GFC_matrix4 out, GFC_Vector3D eye, GFC_Vector3D target, GFC_Vector3D up)
+    gf3d_vgraphics_set_view(gf3d_camera.cameraMat);
+} */
+
+/* void gf3d_camera_get_view_matrix(GFC_matrix4 out, GFC_Vector3D eye, GFC_Vector3D target, GFC_Vector3D up){
+    gfc_vector3d zaxis,yaxis,xaxis;
+    
+    gfc_matrix4_identity(out);
+    
+    gfc_vector3d_sub(zaxis,eye,target);
+    gfc_vector3d_normalize(&zaxis);
+    
+    xaxis = gfc_vector3d_cross_product(up,zaxis);
+    gfc_vector3d_normalize(&xaxis);
+    
+    yaxis = gfc_vector3d_cross_product(zaxis,xaxis);
+    
+    // 4x4 view matrix from right,up,forward,and eye position vectors
+    
+    out[0][0] = xaxis.x;
+    out[0][1] = yaxis.x;
+    out[0][2] = zaxis.x;
+    
+    out[2][0] = xaxis.y;
+    out[2][1] = xaxis.y;
+    out[2][2] = xaxis.y;
+    
+    out[3][0] = -gfc_vector3d_dot_product(xaxis,eye);
+    out[3][1] = -gfc_vector3d_dot_product(yaxis,eye);
+    out[3][2] = -gfc_vector3d_dot_product(zaxis,eye);
+    
+    vec4(-dot( xaxis, eye ), -dot( yaxis, eye ), -dot( zaxis, eye ), 1)
+} */
+
 static int s_free_mode = 0; // 0 fixed, 1 free
 static GFC_Vector3D s_camera_pos = {0, -1, 55};
 static GFC_Vector3D s_target_pos = {0, 0, 4};

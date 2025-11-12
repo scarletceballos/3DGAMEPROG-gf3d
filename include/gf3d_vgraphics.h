@@ -69,6 +69,12 @@ GFC_Vector2D gf3d_vgraphics_get_view_extent_as_vector2d();
 GFC_Vector2D gf3d_vgraphics_get_resolution();
 
 /**
+ * @brief get the SDL window handle for runtime operations (for fullscreen toggle)
+ * @return the main SDL_Window or NULL if not initialized
+ */
+SDL_Window* gf3d_vgraphics_get_window();
+
+/**
  * @brief translate a 3D position to the corresponding screen position
  * @note this does the same operations that are better handled in shaders, so it sparingly
  * @param position the position in 3D space input

@@ -209,7 +209,12 @@ static int gf3d_mesh_primitive_build_from_obj(MeshPrimitive* prim, ObjData* obj)
     VkDeviceSize bufferSize;
     void* data = NULL;
 
-    if (!prim || !obj) return 0;
+    slog("gf3d_mesh_primitive_build_from_obj: entry");
+    if (!prim || !obj) {
+        slog("gf3d_mesh_primitive_build_from_obj: NULL prim or obj");
+        return 0;
+    }
+    slog("gf3d_mesh_primitive_build_from_obj: checking face data, face_vert_count=%d", obj->face_vert_count);
     if (!obj->faceVertices || !obj->face_vert_count) {
         slog("ObjData missing face vertex data, cannot build mesh primitive");
         return 0;
@@ -217,12 +222,15 @@ static int gf3d_mesh_primitive_build_from_obj(MeshPrimitive* prim, ObjData* obj)
 
     device = mesh_manager.device;
     bufferSize = sizeof(Vertex) * obj->face_vert_count;
+    slog("gf3d_mesh_primitive_build_from_obj: creating staging buffer, size=%llu bytes", (unsigned long long)bufferSize);
 
     if (!gf3d_buffer_create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, &stagingMemory)) {
         slog("Failed to create staging buffer for mesh primitive");
         return 0;
     }
+    slog("gf3d_mesh_primitive_build_from_obj: staging buffer created");
 
+    slog("gf3d_mesh_primitive_build_from_obj: mapping staging buffer memory");
     if (vkMapMemory(device, stagingMemory, 0, bufferSize, 0, &data) != VK_SUCCESS) {
         slog("Failed to map staging buffer memory for mesh primitive");
         vkDestroyBuffer(device, stagingBuffer, NULL);
@@ -230,26 +238,34 @@ static int gf3d_mesh_primitive_build_from_obj(MeshPrimitive* prim, ObjData* obj)
         return 0;
     }
 
+    slog("gf3d_mesh_primitive_build_from_obj: copying %llu bytes to staging buffer", (unsigned long long)bufferSize);
     memcpy(data, obj->faceVertices, bufferSize);
     vkUnmapMemory(device, stagingMemory);
+    slog("gf3d_mesh_primitive_build_from_obj: staging buffer unmapped");
 
+    slog("gf3d_mesh_primitive_build_from_obj: creating device-local vertex buffer");
     if (!gf3d_buffer_create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &prim->vertexBuffer, &prim->vertexBufferMemory)) {
         slog("Failed to create vertex buffer for mesh primitive");
         vkDestroyBuffer(device, stagingBuffer, NULL);
         vkFreeMemory(device, stagingMemory, NULL);
         return 0;
     }
+    slog("gf3d_mesh_primitive_build_from_obj: device buffer created");
 
+    slog("gf3d_mesh_primitive_build_from_obj: copying staging to device buffer");
     gf3d_buffer_copy(stagingBuffer, prim->vertexBuffer, bufferSize);
+    slog("gf3d_mesh_primitive_build_from_obj: buffer copy complete");
 
     vkDestroyBuffer(device, stagingBuffer, NULL);
     vkFreeMemory(device, stagingMemory, NULL);
+    slog("gf3d_mesh_primitive_build_from_obj: staging resources freed");
 
     prim->vertexCount = obj->face_vert_count;
     prim->faceCount = obj->face_count;
     prim->faceBuffer = VK_NULL_HANDLE;
     prim->faceBufferMemory = VK_NULL_HANDLE;
 
+    slog("gf3d_mesh_primitive_build_from_obj: success, vertexCount=%d, faceCount=%d", prim->vertexCount, prim->faceCount);
     return 1;
 }
 
@@ -265,20 +281,28 @@ Mesh* gf3d_mesh_get_by_filename(const char* filename) {
 }
 
 Mesh* gf3d_mesh_load(const char* filename) {
-    if (!filename) return NULL;
+    if (!filename) {
+        slog("gf3d_mesh_load: NULL filename");
+        return NULL;
+    }
 
+    slog("gf3d_mesh_load: attempting to load %s", filename);
     Mesh* mesh = gf3d_mesh_get_by_filename(filename);
     if (mesh) {
+        slog("gf3d_mesh_load: found cached mesh for %s", filename);
         mesh->_refCount++;
         return mesh;
     }
 
+    slog("gf3d_mesh_load: loading OBJ data from file");
     ObjData* obj = gf3d_obj_load_from_file(filename);
     if (!obj) {
         slog("Failed to load obj file: %s", filename);
         return NULL;
     }
+    slog("gf3d_mesh_load: OBJ data loaded, %d vertices, %d faces", obj->vertex_count, obj->face_count);
 
+    slog("gf3d_mesh_load: creating new mesh structure");
     mesh = gf3d_mesh_new();
     if (!mesh) {
         slog("Failed to create new mesh");
@@ -288,6 +312,7 @@ Mesh* gf3d_mesh_load(const char* filename) {
 
     gfc_line_cpy(mesh->filename, filename);
 
+    slog("gf3d_mesh_load: creating mesh primitive");
     MeshPrimitive* primitive = gf3d_mesh_primitive_new();
     if (!primitive) {
         slog("Failed to create mesh primitive");
@@ -295,8 +320,10 @@ Mesh* gf3d_mesh_load(const char* filename) {
         gf3d_obj_free(obj);
         return NULL;
     }
+    slog("gf3d_mesh_load: mesh primitive created");
 
     primitive->objData = obj;
+    slog("gf3d_mesh_load: building GPU buffers from OBJ data");
     if (!gf3d_mesh_primitive_build_from_obj(primitive, obj)) {
         slog("Failed to build GPU buffers for mesh %s", filename);
         gf3d_mesh_primitive_free(primitive);
@@ -304,10 +331,12 @@ Mesh* gf3d_mesh_load(const char* filename) {
         gf3d_obj_free(obj);
         return NULL;
     }
+    slog("gf3d_mesh_load: GPU buffers created successfully");
 
     mesh->bounds = obj->bounds;
     gfc_list_append(mesh->primitives, primitive);
 
+    slog("gf3d_mesh_load: mesh load complete for %s", filename);
     return mesh;
 }
 

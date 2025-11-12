@@ -147,6 +147,13 @@ void gf3d_camera_fly_up(float magnitude);
 void gf3d_camera_walk_forward(float magnitude);
 
 /**
+@brief calc view matrix based on positon of camera, focus target and variable up vector
+@param out [output] the calc view matrix
+@param eye where -- commented cause game works fine without it for now
+*/
+// void gf3d_camera_get_view_matrix(GFC_matrix4 out, GFC_Vector3D eye, GFC_Vector3D target, GFC_Vector3D up)
+
+/**
  * @brief move the camera right relative to the camera view angle
  * @note does not move along the z axis
  * @param magnitude how far to move

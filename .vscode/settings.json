@@ -1,6 +1,9 @@
 {
     "files.associations": {
         "*.dbclient-js": "javascript",
-        "simple_logger.h": "c"
+        "simple_logger.h": "c",
+        "simple_json.h": "c",
+        "stack": "c",
+        "gfc_types.h": "c"
     }
 }

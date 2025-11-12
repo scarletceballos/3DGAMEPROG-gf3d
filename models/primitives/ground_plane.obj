@@ -1,24 +1,11 @@
-# Ground plane for terrain
-# A simple 10x10 quad for basic terrain
-
-# Vertices
-v -50.0 -50.0 0.0
-v  50.0 -50.0 0.0
-v  50.0  50.0 0.0
-v -50.0  50.0 0.0
-
-# Texture coordinates
+v -32.08 -33.28 2.0
+v  30.71 -33.28 2.0
+v  30.71  35.22 2.0
+v -32.08  35.22 2.0
 vt 0.0 0.0
-vt 10.0 0.0
-vt 10.0 10.0
-vt 0.0 10.0
-
-# Normals (pointing up)
+vt 1.0 0.0
+vt 1.0 1.0
+vt 0.0 1.0
 vn 0.0 0.0 1.0
-vn 0.0 0.0 1.0
-vn 0.0 0.0 1.0
-vn 0.0 0.0 1.0
-
-# Faces (two triangles making a quad)
-f 1/1/1 2/2/2 3/3/3
-f 1/1/1 3/3/3 4/4/4
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 3/3/1 4/4/1
